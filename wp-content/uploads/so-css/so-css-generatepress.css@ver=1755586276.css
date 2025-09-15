@@ -1,0 +1,53 @@
+.parent-page-hierarchy {
+  margin-bottom: 1em;
+}
+
+.parent-page-hierarchy h3 {
+  margin-bottom: 0.5em;
+  /* Space below the title */
+}
+
+.parent-page-hierarchy ul {
+  list-style: none;
+  /* Remove bullet points */
+  padding: 0;
+  margin: 0;
+}
+
+.parent-page-hierarchy li {
+  margin-bottom: 0.25em;
+  /* Add space between list items */
+}
+
+.parent-page-hierarchy a {
+  text-decoration: none;
+  /* Remove underlines from links */
+  color: #333;
+  /* Set link color */
+}
+
+.parent-page-hierarchy a:hover {
+  color: #0073aa;
+  /* Change link color on hover */
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ccc;
+  /* Style the horizontal lines */
+  margin: 1em 0;
+  /* Add space above and below the lines */
+}
+
+.inside-header.grid-container {
+  background-color: #6637b8;
+  margin-top: 20px;
+}
+
+.inside-navigation.grid-container {
+  margin-top: 15px;
+}
+
+#idt-bg.inside-header.grid-container {
+  font-style: italic;
+}
