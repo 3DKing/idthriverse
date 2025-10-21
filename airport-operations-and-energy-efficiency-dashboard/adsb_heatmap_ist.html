@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ADS-B Live Heatmap – Istanbul IST</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<style>
+  html,body,#map { height: 100%; margin: 0; }
+  .btns {
+    position: absolute; z-index: 1000; top: 10px; left: 40px;
+    background: rgba(255,255,255,0.9); border-radius: 10px; padding: 8px;
+  }
+  button { margin: 3px; padding: 6px 10px; border: none; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="btns">
+  <button id="start">Start Live</button>
+  <button id="demo">Force Demo</button>
+</div>
+<script>
+const map = L.map('map').setView([41.275, 28.75], 10);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+const heat = L.heatLayer([], {radius: 25, blur: 30, maxZoom: 12}).addTo(map);
+let interval;
+
+async function fetchLive() {
+  const url = 'https://globe.adsbexchange.com/api/aircraft/json/lat=41.275/lon=28.75/dist=40/';
+  const res = await fetch(url);
+  if (!res.ok) return;
+  const data = await res.json();
+  if (!data.ac) return;
+  const pts = data.ac
+    .filter(a => a.lat && a.lon)
+    .map(a => [a.lat, a.lon, 0.5 + Math.random()*0.5]);
+  heat.setLatLngs(pts);
+  console.log(`Fetched ${pts.length} aircraft`);
+}
+
+document.getElementById('start').onclick = () => {
+  clearInterval(interval);
+  fetchLive();
+  interval = setInterval(fetchLive, 10000);
+};
+
+document.getElementById('demo').onclick = () => {
+  clearInterval(interval);
+  const pts = [];
+  for (let i=0; i<150; i++) {
+    const lat = 41.275 + (Math.random()-0.5)*0.1;
+    const lon = 28.75 + (Math.random()-0.5)*0.15;
+    pts.push([lat, lon, Math.random()]);
+  }
+  heat.setLatLngs(pts);
+};
+</script>
+</body>
+</html>

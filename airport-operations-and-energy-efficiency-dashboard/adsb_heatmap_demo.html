@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Runway & Taxiway Heatmap Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin:0; font-family:sans-serif; background:#0b111e; color:white; text-align:center; }
+    #map { height:90vh; width:100vw; }
+    button {
+      margin:8px; padding:10px 20px; border:none; border-radius:8px;
+      background:#2563eb; color:white; cursor:pointer;
+    }
+    button:hover { background:#1d4ed8; }
+	
+	#map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(127,127,127,0.2); /* light tint */
+  pointer-events: none;
+}
+  </style>
+</head>
+<body>
+  <h2>🛫 Runway & Taxiway Heatmap (Demo Mode)</h2>
+  <button id="start">Start Live (Simulated)</button>
+  <button id="stop">Stop</button>
+  <div id="map"></div>
+	<div class="legend">
+	  <p><strong>Heat Intensity:</strong> Aircraft Density</p>
+	  <p>Source: <a href="https://opensky-network.org" target="_blank">OpenSky Network</a></p>
+	</div>	
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+<script>
+  const map = L.map('map').setView([33.41, 36.52], 10); // Center: Damascus
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+const airports = {
+  DAM: { latMin: 33.38, latMax: 33.42, lonMin: 36.50, lonMax: 36.55 },
+  ALP: { latMin: 36.17, latMax: 36.20, lonMin: 37.20, lonMax: 37.25 },
+  DEZ: { latMin: 35.28, latMax: 35.31, lonMin: 40.15, lonMax: 40.19 }
+};
+
+const heat = L.heatLayer([], {
+  radius: 30,
+  blur: 25,
+  maxZoom: 17,
+  minOpacity: 0.4,
+  gradient: {
+    0.0: '#000000',  // cyan (lowest intensity)
+    0.3: '#0077ff',  // blue
+    0.6: '#5500aa',  // purple
+    1.0: '#000000'   // black (highest intensity)
+  }
+}).addTo(map);
+
+    let timer = null;
+
+    function randomPlanePoint() {
+      // Approximate runway/taxiway zone for Damascus Intl
+      const baseLat = 33.41, baseLng = 36.52;
+      return [
+        baseLat + (Math.random() - 0.5) * 0.01,
+        baseLng + (Math.random() - 0.5) * 0.02,
+        0.8 // intensity
+      ];
+    }
+
+async function fetchLiveFlights() {
+  try {
+    const res = await fetch("https://opensky-network.org/api/states/all");
+    const data = await res.json();
+
+    if (!data || !data.states) return [];
+
+    // Extract aircraft lat/lon, filter to Syria region roughly
+    return data.states
+      .filter(s => s[5] >= 32 && s[5] <= 37 && s[6] >= 35 && s[6] <= 43)
+      .map(s => [s[5], s[6]]);
+  } catch (e) {
+    console.error("Fetch failed:", e);
+    return [];
+  }
+}
+
+async function updateHeat() {
+  const points = await fetchLiveFlights();
+  if (points.length > 0) {
+    heat.setLatLngs(points);
+  }
+}
+setInterval(updateHeat, 60000); // refresh every minute
+updateHeat(); // run immediately once
+
+document.getElementById("start").onclick = () => {
+  clearInterval(demoInterval);
+  updateHeat();
+  setInterval(updateHeat, 60000);
+};
+
+document.getElementById("demo").onclick = () => {
+  clearInterval(realInterval);
+  startDemoAnimation(); // your original animation
+};
+
+
+
+    document.getElementById('start').onclick = () => {
+      if (!timer) timer = setInterval(simulateTraffic, 1000);
+    };
+    document.getElementById('stop').onclick = () => {
+      clearInterval(timer);
+      timer = null;
+    };
+
+    // Auto-run once
+    simulateTraffic();
+  </script>
+</body>
+</html>

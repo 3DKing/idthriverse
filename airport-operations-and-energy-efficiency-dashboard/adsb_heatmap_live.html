@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runway & Taxiway Heatmap – Damascus Intl. Airport</title>
+
+  <!-- Leaflet & Heatmap.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      margin: 0;
+      background: #f7f7f7;
+    }
+    h2 {
+      margin: 10px 0;
+      font-size: 20px;
+      color: #333;
+    }
+    #map {
+      width: 95%;
+      height: 520px;
+      margin: 15px auto;
+      border-radius: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.2);
+    }
+    .controls {
+      margin: 10px;
+    }
+    button {
+      margin: 5px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      background: #4a90e2;
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #357ABD;
+    }
+    .legend {
+      font-size: 14px;
+      color: #555;
+      margin-top: 12px;
+    }
+    .legend a {
+      color: #357ABD;
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Runway & Taxiway Live Heatmap – Damascus Intl. Airport (DAM)</h2>
+  <div id="map"></div>
+  <div class="controls">
+    <button id="liveBtn">Start Live Feed</button>
+    <button id="demoBtn">Force Demo</button>
+  </div>
+  <div class="legend">
+    <p><strong>Heat Intensity:</strong> Aircraft Activity Density</p>
+    <p>Source: <a href="https://opensky-network.org" target="_blank">OpenSky Network</a></p>
+  </div>
+
+  <script>
+    // Initialize map (Light)
+    const map = L.map('map').setView([33.41, 36.52], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Initialize heatmap layer
+    const heat = L.heatLayer([], {
+      radius: 40,
+      blur: 30,
+      maxZoom: 17,
+      minOpacity: 0.4,
+      gradient: {
+        0.1: "blue",
+        0.4: "lime",
+        0.7: "orange",
+        1.0: "red"
+      }
+    }).addTo(map);
+
+    // Define DAM bounding box
+    const DAM = {
+      latMin: 33.38, latMax: 33.42,
+      lonMin: 36.50, lonMax: 36.56
+    };
+
+    // Fetch real ADS-B data
+    async function fetchLiveFlights() {
+      try {
+        const res = await fetch("https://opensky-network.org/api/states/all");
+        const data = await res.json();
+
+        if (!data || !data.states) return [];
+
+        return data.states
+          .filter(s =>
+            s[5] >= DAM.latMin && s[5] <= DAM.latMax &&
+            s[6] >= DAM.lonMin && s[6] <= DAM.lonMax
+          )
+          .map(s => [s[5], s[6]]);
+      } catch (e) {
+        console.error("Fetch failed:", e);
+        return [];
+      }
+    }
+
+    let liveInterval = null;
+
+    async function updateHeatLive() {
+      const points = await fetchLiveFlights();
+      if (points.length > 0) {
+        heat.setLatLngs(points);
+        console.log(`Updated with ${points.length} live points`);
+      } else {
+        console.warn("No live data found — showing last known or empty layer.");
+      }
+    }
+
+    document.getElementById("liveBtn").onclick = () => {
+      clearInterval(liveInterval);
+      updateHeatLive();
+      liveInterval = setInterval(updateHeatLive, 60000);
+      alert("Live ADS-B feed started. Refresh every 60s.");
+    };
+
+    // Force Demo Mode
+    let demoTimer;
+    document.getElementById("demoBtn").onclick = () => {
+      clearInterval(liveInterval);
+      if (demoTimer) clearInterval(demoTimer);
+
+      function randomDemoData() {
+        const baseLat = 33.41, baseLon = 36.52;
+        const pts = [];
+        for (let i = 0; i < 15; i++) {
+          pts.push([
+            baseLat + (Math.random() - 0.5) * 0.02,
+            baseLon + (Math.random() - 0.5) * 0.03
+          ]);
+        }
+        heat.setLatLngs(pts);
+      }
+
+      randomDemoData();
+      demoTimer = setInterval(randomDemoData, 3000);
+      alert("Demo animation started (simulated flights).");
+    };
+  </script>
+</body>
+</html>
