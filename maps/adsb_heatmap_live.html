@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Airport OpenSky Heatmap</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, sans-serif;
+      background: #f5f5f5;
+    }
+    h2 {
+      text-align: center;
+      background: #222;
+      color: white;
+      margin: 0;
+      padding: 8px 0;
+    }
+    .map-container {
+      width: 100%;
+      height: 400px;
+      margin-bottom: 12px;
+      position: relative;
+    }
+    .info-box {
+      position: absolute;
+      top: 10px;
+      left: 50px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 6px 10px;
+      border: 1px solid #444;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Damascus (DAM)</h2>
+  <div id="map-damascus" class="map-container"></div>
+
+  <h2>Istanbul (IST)</h2>
+  <div id="map-istanbul" class="map-container"></div>
+
+  <h2>Dubai International (DXB)</h2>
+  <div id="map-dxb" class="map-container"></div>
+
+  <h2>Al-Maktoum (DWC)</h2>
+  <div id="map-dwc" class="map-container"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+
+  <script>
+    // Helper: Create map + fetch loop
+    function createAirportMap(divId, name, bounds) {
+      const map = L.map(divId).setView(bounds.center, bounds.zoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      const info = L.DomUtil.create('div', 'info-box');
+      info.innerHTML = `${name}: loading…`;
+      map.getContainer().appendChild(info);
+
+      let heatLayer;
+
+      async function fetchOpenSky() {
+        const url = `https://opensky-network.org/api/states/all?lamin=${bounds.lamin}&lomin=${bounds.lomin}&lamax=${bounds.lamax}&lomax=${bounds.lomax}`;
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const data = await resp.json();
+          const coords = (data.states || [])
+            .filter(s => s[5] !== null && s[6] !== null)
+            .map(s => [ s[6], s[5], 0.5 ]);
+
+          if (heatLayer) map.removeLayer(heatLayer);
+          heatLayer = L.heatLayer(coords, { radius: 25, blur: 15, maxZoom: 10 }).addTo(map);
+
+          info.innerHTML = `${name}: ${coords.length} aircraft @ ${new Date(data.time * 1000).toLocaleTimeString()}`;
+        } catch (err) {
+          console.error(`${name} fetch failed:`, err);
+          info.innerHTML = `${name}: fetch error`;
+        }
+      }
+
+      fetchOpenSky();
+      setInterval(fetchOpenSky, 10000);
+    }
+
+    // Define airport bounding boxes
+    const airports = [
+      {
+        id: 'map-damascus',
+        name: 'Damascus (DAM)',
+        bounds: { center: [33.41, 36.52], lamin: 33.0, lomin: 36.2, lamax: 33.8, lomax: 36.8, zoom: 9 }
+      },
+      {
+        id: 'map-istanbul',
+        name: 'Istanbul (IST)',
+        bounds: { center: [41.275, 28.75], lamin: 41.0, lomin: 28.3, lamax: 41.5, lomax: 29.1, zoom: 9 }
+      },
+      {
+        id: 'map-dxb',
+        name: 'Dubai Intl (DXB)',
+        bounds: { center: [25.25, 55.36], lamin: 25.0, lomin: 55.1, lamax: 25.5, lomax: 55.6, zoom: 10 }
+      },
+      {
+        id: 'map-dwc',
+        name: 'Al-Maktoum (DWC)',
+        bounds: { center: [24.89, 55.17], lamin: 24.7, lomin: 55.0, lamax: 25.1, lomax: 55.3, zoom: 10 }
+      }
+    ];
+
+    // Initialize all airport maps
+    airports.forEach(a => createAirportMap(a.id, a.name, a.bounds));
+  </script>
+</body>
+</html>
