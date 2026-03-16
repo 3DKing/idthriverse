@@ -33,12 +33,12 @@
   <div class="row g-3">
     <div class="col-lg-3">
       <div class="card p-2">
-        <div class="small text-muted">Airport</div>
+        <div class="small text-muted">Airport Monitoring Region</div>
         <select id="airportSelect" class="form-select mb-2">
           <!--   -->
 		  
 		  <option value="-0.7,51.3,0.1,51.7">London area (example)</option>
-          <option value="28.6,40.8,29.1,41.2">IST (LTFM) tight bbox</option>
+          <option value="28.55,40.9,29.05,41.35" selected>IST (LTFM) tight bbox</option>
           <option value="55.2,24.7,55.5,25.0">DXB area</option>
           <option value="54.9,24.8,55.6,25.4">DWC area</option>
           <option value="36.0,33.4,36.6,34.0">DAM area</option>
@@ -131,7 +131,7 @@ const loadHistBtn = document.getElementById('loadHist');
 const histUrlEl = document.getElementById('histUrl');
 
 /* ========== Map setup ========== */
-const map = L.map('map', { zoomControl: true }).setView([30, 30], 3);
+const map = L.map('map', { zoomControl: true }).setView([41.275, 28.751], 9);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
